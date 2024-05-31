@@ -18,14 +18,16 @@ type ViaCep struct {
 	Gia         string `json:"gia"`
 	Ddd         string `json:"ddd"`
 	Siafi       string `json:"siafi"`
+	TimeSpend   string `json:"time_spend"`
 }
 
 type BrasilApi struct {
-	Cep     string `json:"cep"`
-	State   string `json:"state"`
-	City    string `json:"city"`
-	Street  string `json:"street"`
-	Service string `json:"service"`
+	Cep       string `json:"cep"`
+	State     string `json:"state"`
+	City      string `json:"city"`
+	Street    string `json:"street"`
+	Service   string `json:"service"`
+	TimeSpend string `json:"time_spend"`
 }
 
 type CEP struct {
@@ -36,6 +38,7 @@ type CEP struct {
 	Localidade  string `json:"localidade"`
 	Uf          string `json:"uf"`
 	APi         string `json:"api"`
+	TimeSpend   string `json:"time_spend"`
 }
 
 func (response *ViaCep) convertToCEP() CEP {
@@ -47,6 +50,7 @@ func (response *ViaCep) convertToCEP() CEP {
 		Localidade:  response.Localidade,
 		Uf:          response.Uf,
 		APi:         "ViaCep",
+		TimeSpend:   response.TimeSpend,
 	}
 }
 
@@ -59,6 +63,7 @@ func (response *BrasilApi) convertToCEP() CEP {
 		Localidade:  response.City,
 		Uf:          response.State,
 		APi:         "BrasilApi",
+		TimeSpend:   response.TimeSpend,
 	}
 }
 
@@ -72,6 +77,7 @@ func main() {
 	select {
 	case cep := <-c1:
 		fmt.Printf("received from api %s\n", cep.APi)
+		fmt.Printf("Time spend: %s\n", cep.TimeSpend)
 		fmt.Printf("CEP: %s\n", cep.Cep)
 		fmt.Printf("Logradouro: %s\n", cep.Logradouro)
 		fmt.Printf("Complemento: %s\n", cep.Complemento)
@@ -84,7 +90,9 @@ func main() {
 }
 
 func findByViaCep(cep string, c1 chan<- CEP) {
+	start := time.Now()
 	resp, err := http.Get("https://viacep.com.br/ws/" + cep + "/json/")
+	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
@@ -94,11 +102,14 @@ func findByViaCep(cep string, c1 chan<- CEP) {
 	if err != nil {
 		panic(err)
 	}
+	c.TimeSpend = duration.String()
 	c1 <- c.convertToCEP()
 }
 
 func findByBrasilApi(cep string, c1 chan<- CEP) {
+	start := time.Now()
 	resp, err := http.Get("https://brasilapi.com.br/api/cep/v1/" + cep)
+	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
@@ -108,5 +119,6 @@ func findByBrasilApi(cep string, c1 chan<- CEP) {
 	if err != nil {
 		panic(err)
 	}
+	c.TimeSpend = duration.String()
 	c1 <- c.convertToCEP()
 }
