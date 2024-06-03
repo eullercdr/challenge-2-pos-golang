@@ -94,13 +94,13 @@ func main() {
 }
 
 func findByViaCep(ctx context.Context, cep string, c1 chan<- CEP) {
-	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://viacep.com.br/ws/"+cep+"/json", nil)
-	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
+	start := time.Now()
 	resp, err := http.DefaultClient.Do(req)
+	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
@@ -115,13 +115,13 @@ func findByViaCep(ctx context.Context, cep string, c1 chan<- CEP) {
 }
 
 func findByBrasilApi(ctx context.Context, cep string, c1 chan<- CEP) {
-	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://brasilapi.com.br/api/cep/v1/"+cep, nil)
-	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
+	start := time.Now()
 	resp, err := http.DefaultClient.Do(req)
+	duration := time.Since(start)
 	if err != nil {
 		panic(err)
 	}
