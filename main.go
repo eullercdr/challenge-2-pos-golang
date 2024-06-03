@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -71,8 +72,11 @@ func main() {
 	c1 := make(chan CEP)
 	var cep string = "35660124"
 
-	go findByViaCep(cep, c1)
-	go findByBrasilApi(cep, c1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	go findByViaCep(ctx, cep, c1)
+	go findByBrasilApi(ctx, cep, c1)
 
 	select {
 	case cep := <-c1:
@@ -84,15 +88,19 @@ func main() {
 		fmt.Printf("Bairro: %s\n", cep.Bairro)
 		fmt.Printf("Localidade: %s\n", cep.Localidade)
 		fmt.Printf("UF: %s\n", cep.Uf)
-	case <-time.After(time.Second):
-		println("timeout")
+	case <-ctx.Done():
+		fmt.Println("timeout")
 	}
 }
 
-func findByViaCep(cep string, c1 chan<- CEP) {
+func findByViaCep(ctx context.Context, cep string, c1 chan<- CEP) {
 	start := time.Now()
-	resp, err := http.Get("https://viacep.com.br/ws/" + cep + "/json/")
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://viacep.com.br/ws/"+cep+"/json", nil)
 	duration := time.Since(start)
+	if err != nil {
+		panic(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
@@ -106,10 +114,14 @@ func findByViaCep(cep string, c1 chan<- CEP) {
 	c1 <- c.convertToCEP()
 }
 
-func findByBrasilApi(cep string, c1 chan<- CEP) {
+func findByBrasilApi(ctx context.Context, cep string, c1 chan<- CEP) {
 	start := time.Now()
-	resp, err := http.Get("https://brasilapi.com.br/api/cep/v1/" + cep)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://brasilapi.com.br/api/cep/v1/"+cep, nil)
 	duration := time.Since(start)
+	if err != nil {
+		panic(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
